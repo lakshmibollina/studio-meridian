@@ -64,6 +64,7 @@ export default function WorkGrid() {
         {projects.map((project, i) => (
           <motion.article
             key={project.client}
+            data-cursor="view"
             initial={{ opacity: 0, y: 36 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}

@@ -5,9 +5,7 @@
 @tailwind utilities;
 
 /* ---------- base ---------- */
-html {
-  scroll-behavior: smooth;
-}
+/* NOTE: no `scroll-behavior: smooth` here — Lenis owns scroll smoothing. */
 
 body {
   @apply font-body bg-cream text-ink antialiased;
@@ -17,6 +15,28 @@ body {
 ::selection {
   background: #ff6b4a;
   color: #fff;
+}
+
+/* ---------- lenis smooth scroll (required styles) ---------- */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ---------- custom cursor ---------- */
+/* Only applied when CustomCursor detects a fine pointer; touch devices keep the native cursor. */
+.has-custom-cursor,
+.has-custom-cursor * {
+  cursor: none !important;
 }
 
 /* ---------- custom keyframes ---------- */

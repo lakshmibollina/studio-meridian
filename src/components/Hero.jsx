@@ -1,28 +1,58 @@
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState, Suspense, lazy } from 'react';
+import { motion, useScroll } from 'framer-motion';
 import { hero } from '../data/content.js';
+import WebGLErrorBoundary from './WebGLErrorBoundary.jsx';
+
+// Code-split: three.js only downloads when the canvas actually renders (desktop).
+const HeroCanvas = lazy(() => import('./HeroCanvas.jsx'));
+
+function useShowCanvas() {
+  const [show, setShow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const update = () => setShow(mq.matches);
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return show;
+}
 
 const ease = [0.22, 1, 0.36, 1];
 
 function StaggeredHeadline({ text }) {
+  // Per-character reveal, keeping word grouping so lines never break mid-word.
   const words = text.split(' ');
+  let charIndex = 0;
   return (
     <h1 className="font-display text-[clamp(2.6rem,8.5vw,5.75rem)] font-bold leading-[1.02] tracking-tight">
-      {words.map((word, i) => (
-        <span
-          key={i}
-          className="inline-block overflow-hidden pb-2 -mb-2 align-bottom"
-        >
-          <motion.span
-            className="inline-block will-change-transform"
-            initial={{ y: '115%' }}
-            animate={{ y: '0%' }}
-            transition={{ duration: 0.75, delay: 0.25 + i * 0.07, ease }}
+      {words.map((word, i) => {
+        const chars = word.split('').map((ch, ci) => {
+          const delay = 0.25 + charIndex * 0.016;
+          charIndex += 1;
+          return (
+            <motion.span
+              key={ci}
+              className="inline-block will-change-transform"
+              initial={{ y: '115%', opacity: 0 }}
+              animate={{ y: '0%', opacity: 1 }}
+              transition={{ duration: 0.5, delay, ease }}
+            >
+              {ch}
+            </motion.span>
+          );
+        });
+        return (
+          <span
+            key={i}
+            className="inline-block overflow-hidden whitespace-nowrap pb-2 -mb-2 align-bottom"
           >
-            {word}
+            {chars}
             {i < words.length - 1 ? ' ' : ''}
-          </motion.span>
-        </span>
-      ))}
+          </span>
+        );
+      })}
     </h1>
   );
 }
@@ -51,8 +81,29 @@ function RotatingBadge() {
 }
 
 export default function Hero() {
+  const sectionRef = useRef(null);
+  const showCanvas = useShowCanvas();
+  // Scroll progress across the hero drives the 3D camera drift (subtle).
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end start'],
+  });
+
   return (
-    <section id="top" className="relative overflow-hidden pt-36 sm:pt-44">
+    <section id="top" ref={sectionRef} className="relative overflow-hidden pt-36 sm:pt-44">
+      {/* interactive 3D field — desktop only, sits behind content */}
+      {showCanvas && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+        >
+          <WebGLErrorBoundary>
+            <Suspense fallback={null}>
+              <HeroCanvas progress={scrollYProgress} />
+            </Suspense>
+          </WebGLErrorBoundary>
+        </div>
+      )}
       {/* decorative background */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -left-24 h-96 w-96 animate-float rounded-full bg-coral-300/50 blur-3xl" />
